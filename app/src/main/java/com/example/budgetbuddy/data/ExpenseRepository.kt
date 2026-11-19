@@ -1,15 +1,42 @@
 package com.example.budgetbuddy.data
 
+import android.util.Log
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
 class ExpenseRepository(private val db: AppDatabase) {
+
+    private val firestore = FirebaseFirestore.getInstance()
+    private val groupsCollection = firestore.collection("groups")
+
+    // لتخزين الـ Listeners النشطة وقفلها لما الشاشة تتقفل
+    private var membersListener: ListenerRegistration? = null
+    private var expensesListener: ListenerRegistration? = null
+
+    // =========================================================================
+    // 1. دوال الجروبات (Local Room + Cloud Firestore)
+    // =========================================================================
 
     suspend fun createGroupWithMembers(groupName: String, members: List<String>): SharedGroup {
         val code = "BUD-" + (100..999).random()
         val group = SharedGroup(groupName = groupName, groupCode = code)
         db.groupDao().insertGroup(group)
 
+        // رفع الجروب على Firestore
+        val groupRef = groupsCollection.document(group.groupCode)
+        groupRef.set(groupToMap(group))
+
         for (name in members) {
             if (name.isNotBlank()) {
-                db.memberDao().insertMember(Member(groupId = group.id, memberName = name.trim()))
+                val member = Member(groupId = group.id, memberName = name.trim())
+                db.memberDao().insertMember(member)
+                // رفع العضو تحت الجروب في Firestore
+                groupRef.collection("members").document(member.id).set(memberToMap(member))
             }
         }
         return group
@@ -19,30 +46,260 @@ class ExpenseRepository(private val db: AppDatabase) {
 
     suspend fun getGroupById(groupId: String): SharedGroup? = db.groupDao().getGroupById(groupId)
 
-    suspend fun updateGroup(group: SharedGroup) = db.groupDao().updateGroup(group)
+    suspend fun updateGroup(group: SharedGroup) {
+        db.groupDao().updateGroup(group)
+        groupsCollection.document(group.groupCode).update("groupName", group.groupName)
+    }
 
-    suspend fun deleteGroup(group: SharedGroup) = db.groupDao().deleteGroup(group)
+    suspend fun deleteGroup(group: SharedGroup) {
+        db.groupDao().deleteGroup(group)
+        groupsCollection.document(group.groupCode).delete()
+    }
+
+    // =========================================================================
+    // 2. دوال الأعضاء (Local Room + Cloud Firestore)
+    // =========================================================================
 
     suspend fun getMembersForGroup(groupId: String): List<Member> = db.memberDao().getMembersForGroup(groupId)
 
-    suspend fun addMemberToGroup(groupId: String, memberName: String)
-    {
+    suspend fun addMemberToGroup(groupId: String, memberName: String) {
         if (memberName.isNotBlank()) {
-            db.memberDao().insertMember(Member(groupId = groupId, memberName = memberName.trim()))
+            val member = Member(groupId = groupId, memberName = memberName.trim())
+            db.memberDao().insertMember(member)
+
+            val group = db.groupDao().getGroupById(groupId)
+            if (group != null) {
+                groupsCollection.document(group.groupCode)
+                    .collection("members")
+                    .document(member.id)
+                    .set(memberToMap(member))
+            }
         }
     }
 
-    suspend fun deleteMember(member: Member) = db.memberDao().deleteMember(member)
+    suspend fun deleteMember(member: Member) {
+        db.memberDao().deleteMember(member)
+        val group = db.groupDao().getGroupById(member.groupId)
+        if (group != null) {
+            groupsCollection.document(group.groupCode)
+                .collection("members")
+                .document(member.id)
+                .delete()
+        }
+    }
+
+    // =========================================================================
+    // 3. دوال المصاريف (Local Room + Cloud Firestore)
+    // =========================================================================
 
     suspend fun addExpense(expense: ExpenseItem) {
         db.expenseDao().insertExpense(expense)
+        syncExpenseToCloud(expense)
     }
 
     suspend fun getExpensesForGroup(groupId: String): List<ExpenseItem> = db.expenseDao().getExpensesForGroup(groupId)
 
     suspend fun getAllExpenses(): List<ExpenseItem> = db.expenseDao().getAllExpenses()
 
-    suspend fun updateExpense(expense: ExpenseItem) = db.expenseDao().updateExpense(expense)
+    suspend fun updateExpense(expense: ExpenseItem) {
+        db.expenseDao().updateExpense(expense)
+        syncExpenseToCloud(expense)
+    }
 
-    suspend fun deleteExpense(expense: ExpenseItem) = db.expenseDao().deleteExpense(expense)
+    suspend fun deleteExpense(expense: ExpenseItem) {
+        db.expenseDao().deleteExpense(expense)
+        val group = db.groupDao().getGroupById(expense.groupId)
+        if (group != null) {
+            groupsCollection.document(group.groupCode)
+                .collection("expenses")
+                .document(expense.id)
+                .delete()
+        }
+    }
+
+    private suspend fun syncExpenseToCloud(expense: ExpenseItem) {
+        val group = db.groupDao().getGroupById(expense.groupId)
+        if (group != null) {
+            groupsCollection.document(group.groupCode)
+                .collection("expenses")
+                .document(expense.id)
+                .set(expenseToMap(expense))
+        }
+    }
+
+    // =========================================================================
+    // 4. الانضمام لجروب بالكود (Join Group by Code)
+    // =========================================================================
+
+    suspend fun joinGroupByCode(rawCode: String): Result<SharedGroup> {
+        val code = rawCode.trim().uppercase()
+        if (code.isBlank()) return Result.failure(Exception("برجاء إدخال كود الجروب"))
+
+        val groupRef = groupsCollection.document(code)
+
+        // 1. البحث عن الجروب في Firestore
+        val groupSnap = awaitTask(groupRef.get())
+            ?: return Result.failure(Exception("تعذر الاتصال بالسيرفر، تأكد من الإنترنت"))
+
+        if (!groupSnap.exists()) {
+            return Result.failure(Exception("كود الجروب غير صحيح أو غير موجود"))
+        }
+
+        val groupId = groupSnap.getString("id") ?: return Result.failure(Exception("بيانات الجروب غير مكتملة"))
+        val groupName = groupSnap.getString("groupName") ?: "Shared Group"
+        val groupCode = groupSnap.getString("groupCode") ?: code
+        val sharedGroup = SharedGroup(id = groupId, groupName = groupName, groupCode = groupCode)
+
+        // حفظ أو تحديث الجروب في Room محلياً
+        if (db.groupDao().getGroupById(groupId) == null) {
+            db.groupDao().insertGroup(sharedGroup)
+        } else {
+            db.groupDao().updateGroup(sharedGroup)
+        }
+
+        // 2. سحب كل الأعضاء وحفظهم في Room
+        val membersSnap = awaitTask(groupRef.collection("members").get())
+        val existingMemberIds = db.memberDao().getMembersForGroup(groupId).map { it.id }.toSet()
+        membersSnap?.documents?.forEach { doc ->
+            val mId = doc.getString("id") ?: doc.id
+            val mName = doc.getString("memberName") ?: return@forEach
+            if (mId !in existingMemberIds) {
+                db.memberDao().insertMember(Member(id = mId, groupId = groupId, memberName = mName))
+            }
+        }
+
+        // 3. سحب كل المصاريف وحفظها في Room
+        val expensesSnap = awaitTask(groupRef.collection("expenses").get())
+        val existingExpenseIds = db.expenseDao().getExpensesForGroup(groupId).map { it.id }.toSet()
+        expensesSnap?.documents?.forEach { doc ->
+            val expense = mapToExpense(doc.data, doc.id, groupId) ?: return@forEach
+            if (expense.id !in existingExpenseIds) {
+                db.expenseDao().insertExpense(expense)
+            } else {
+                db.expenseDao().updateExpense(expense)
+            }
+        }
+
+        return Result.success(sharedGroup)
+    }
+
+    // =========================================================================
+    // 5. المزامنة اللحظية (Real-Time Snapshot Listeners)
+    // =========================================================================
+
+    fun startGroupSync(groupCode: String, groupId: String, onDataChanged: () -> Unit) {
+        stopGroupSync() // قفل أي مستمع قديم قبل فتح واحد جديد
+        val groupRef = groupsCollection.document(groupCode)
+
+        // أ) مراقبة تغييرات الأعضاء لحظياً
+        membersListener = groupRef.collection("members").addSnapshotListener { snapshots, error ->
+            if (error != null || snapshots == null) {
+                Log.e("FirestoreSync", "Members sync error: ${error?.message}")
+                return@addSnapshotListener
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                val localMembers = db.memberDao().getMembersForGroup(groupId)
+                val localIds = localMembers.map { it.id }.toSet()
+                val remoteIds = snapshots.documents.map { it.id }.toSet()
+
+                // إضافة الأعضاء الجداد اللي أضافهم أصحابك
+                for (doc in snapshots.documents) {
+                    val mId = doc.getString("id") ?: doc.id
+                    val mName = doc.getString("memberName") ?: continue
+                    if (mId !in localIds) {
+                        db.memberDao().insertMember(Member(id = mId, groupId = groupId, memberName = mName))
+                    }
+                }
+                // حذف الأعضاء اللي اتحذفوا من السحابة
+                for (local in localMembers) {
+                    if (local.id !in remoteIds) {
+                        db.memberDao().deleteMember(local)
+                    }
+                }
+                onDataChanged()
+            }
+        }
+
+        // ب) مراقبة تغييرات المصاريف لحظياً (إضافة / تعديل / حذف)
+        expensesListener = groupRef.collection("expenses").addSnapshotListener { snapshots, error ->
+            if (error != null || snapshots == null) {
+                Log.e("FirestoreSync", "Expenses sync error: ${error?.message}")
+                return@addSnapshotListener
+            }
+            CoroutineScope(Dispatchers.IO).launch {
+                val localExpenses = db.expenseDao().getExpensesForGroup(groupId)
+                val localIds = localExpenses.map { it.id }.toSet()
+                val remoteIds = snapshots.documents.map { it.id }.toSet()
+
+                for (doc in snapshots.documents) {
+                    val remoteExpense = mapToExpense(doc.data, doc.id, groupId) ?: continue
+                    if (remoteExpense.id !in localIds) {
+                        db.expenseDao().insertExpense(remoteExpense)
+                    } else {
+                        db.expenseDao().updateExpense(remoteExpense)
+                    }
+                }
+                for (local in localExpenses) {
+                    if (local.id !in remoteIds) {
+                        db.expenseDao().deleteExpense(local)
+                    }
+                }
+                onDataChanged()
+            }
+        }
+    }
+
+    fun stopGroupSync() {
+        membersListener?.remove()
+        expensesListener?.remove()
+        membersListener = null
+        expensesListener = null
+    }
+
+    // =========================================================================
+    // 6. دوال التحويل المساعدة (Data Mapping & Task Await)
+    // =========================================================================
+
+    private fun groupToMap(group: SharedGroup): Map<String, Any> = mapOf(
+        "id" to group.id,
+        "groupName" to group.groupName,
+        "groupCode" to group.groupCode
+    )
+
+    private fun memberToMap(member: Member): Map<String, Any> = mapOf(
+        "id" to member.id,
+        "groupId" to member.groupId,
+        "memberName" to member.memberName
+    )
+
+    private fun expenseToMap(expense: ExpenseItem): Map<String, Any> = mapOf(
+        "id" to expense.id,
+        "groupId" to expense.groupId,
+        "title" to expense.title,
+        "category" to expense.category,
+        "amount" to expense.amount,
+        "paidBy" to expense.paidBy,
+        "splitAmong" to expense.splitAmong,
+        "date" to expense.date
+    )
+
+    private fun mapToExpense(data: Map<String, Any>?, fallbackId: String, groupId: String): ExpenseItem? {
+        if (data == null) return null
+        return ExpenseItem(
+            id = data["id"] as? String ?: fallbackId,
+            groupId = groupId,
+            title = data["title"] as? String ?: "",
+            category = data["category"] as? String ?: "Other",
+            amount = (data["amount"] as? Number)?.toDouble() ?: 0.0,
+            paidBy = data["paidBy"] as? String ?: "",
+            splitAmong = data["splitAmong"] as? String ?: "",
+            date = data["date"] as? String ?: ""
+        )
+    }
+
+    private suspend fun <T> awaitTask(task: com.google.android.gms.tasks.Task<T>): T? =
+        suspendCancellableCoroutine { cont ->
+            task.addOnSuccessListener { result -> cont.resume(result) }
+                .addOnFailureListener { cont.resume(null) }
+        }
 }

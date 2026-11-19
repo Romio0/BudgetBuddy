@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "732518933881",
+    "project_id": "budgetbuddy-b8320",
+    "storage_bucket": "budgetbuddy-b8320.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:732518933881:android:94cbc4240f68bce3a67ba8",
+        "android_client_info": {
+          "package_name": "com.example.budgetbuddy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwIn_Ri_Jh1tFMkRAZHE7fRsGZkj70U5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
