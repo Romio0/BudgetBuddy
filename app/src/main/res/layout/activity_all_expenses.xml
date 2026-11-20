@@ -1,10 +1,172 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8FAF9"
     tools:context=".ui.AllExpensesActivity">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Main Content Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp">
+
+        <!-- Top Bar with Back Button & Centered Title -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginBottom="14dp">
+
+            <TextView
+                android:id="@+id/btnBackActivity"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentStart="true"
+                android:gravity="center_vertical"
+                android:text="←"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#111827" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Your Activity"
+                android:textSize="19sp"
+                android:textStyle="bold"
+                android:textColor="#111827" />
+        </RelativeLayout>
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvEmptyActivity"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:text="No activity yet.\nTap '+' below to log your first shared expense."
+            android:gravity="center"
+            android:textColor="#9CA3AF"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <!-- Activity ListView -->
+        <ListView
+            android:id="@+id/lvAllActivity"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="0dp"
+            android:scrollbars="none" />
+
+    </LinearLayout>
+
+    <!-- Floating Bottom Navigation Bar (Activity Active) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="82dp"
+        android:background="@android:color/transparent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="62dp"
+            android:layout_gravity="bottom"
+            android:orientation="horizontal"
+            android:background="#FFFFFF"
+            android:elevation="8dp"
+            android:paddingHorizontal="20dp">
+
+            <!-- Home Tab (Inactive) -->
+            <LinearLayout
+                android:id="@+id/navHomeFromActivity"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⌂"
+                    android:textSize="20sp"
+                    android:textColor="#6B7280" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Home"
+                    android:textSize="11sp"
+                    android:textColor="#6B7280" />
+            </LinearLayout>
+
+            <!-- Center Add Expense Label -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="bottom|center_horizontal"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Add Expense"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#374151" />
+            </LinearLayout>
+
+            <!-- Activity Tab (Active Teal) -->
+            <LinearLayout
+                android:id="@+id/navActivityCurrent"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🕒"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#285951" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Activity"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#285951" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Raised Circular '+' Button -->
+        <TextView
+            android:id="@+id/navAddExpenseFromActivity"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_gravity="top|center_horizontal"
+            android:background="@drawable/bg_circle_badge"
+            android:backgroundTint="#285951"
+            android:elevation="12dp"
+            android:gravity="center"
+            android:text="+"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF" />
+
+    </FrameLayout>
+
+</LinearLayout>
