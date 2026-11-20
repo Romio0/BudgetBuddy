@@ -116,29 +116,47 @@ class AddEditExpenseActivity : AppCompatActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.White,
                 ) {
-                    val groupId = intent.getStringExtra(EXTRA_GROUP_ID).orEmpty()
+                    val groupIdParam = intent.getStringExtra(com.example.budgetbuddy.utils.IntentKeys.EXTRA_GROUP_ID).orEmpty()
+                    var selectedGroupId by remember { mutableStateOf(groupIdParam) }
 
-                    val memberFlow: Flow<List<String>> = remember(db, groupId) {
-                        db.memberDao().observeMembersForGroup(groupId).map { list -> list.map { it.memberName } }
+                    // Fetch all groups
+                    val allGroups by remember(db) {
+                        kotlinx.coroutines.flow.flow { emit(db.groupDao().getAllGroups()) }
+                    }.collectAsState(initial = emptyList())
+
+                    // Fetch members for the selected group
+                    val memberFlow: Flow<List<String>> = remember(db, selectedGroupId) {
+                        if (selectedGroupId.isNotEmpty()) {
+                            db.memberDao().observeMembersForGroup(selectedGroupId).map { list -> list.map { it.memberName } }
+                        } else {
+                            kotlinx.coroutines.flow.flowOf(emptyList())
+                        }
                     }
                     val memberNames by memberFlow.collectAsState(initial = emptyList())
+                    
                     AddEditExpenseScreen(
+                        groups = allGroups,
+                        selectedGroupId = selectedGroupId,
+                        onGroupSelected = { selectedGroupId = it },
                         members = memberNames,
                         onCameraClick = { cameraLauncher.launch(null) }
                     ) { title, category, amount, currency, paidBy, selectedMembers, date ->
-                       /* val intent = Intent(this, GroupDetailsActivity::class.java).apply {
-                            putExtra(GroupDetailsActivity.EXTRA_TITLE, title)
-                            putExtra(GroupDetailsActivity.EXTRA_CATEGORY, category)
-                            putExtra(GroupDetailsActivity.EXTRA_AMOUNT, amount)
-                            putExtra(GroupDetailsActivity.EXTRA_CURRENCY, currency)
-                            putExtra(GroupDetailsActivity.EXTRA_PAID_BY, paidBy)
-                            putExtra(GroupDetailsActivity.EXTRA_DATE, date)
+                        // Todo: Save Expense Data into Room Database Here Instead of sending back using Intent
+                        val intent = Intent(this, GroupDetailsActivity::class.java).apply {
+                            putExtra(com.example.budgetbuddy.utils.IntentKeys.EXTRA_GROUP_ID, selectedGroupId)
+                            putExtra("EXTRA_TITLE", title)
+                            putExtra("EXTRA_CATEGORY", category)
+                            putExtra("EXTRA_AMOUNT", amount)
+                            putExtra("EXTRA_CURRENCY", currency)
+                            putExtra("EXTRA_PAID_BY", paidBy)
+                            putExtra("EXTRA_DATE", date)
                             putStringArrayListExtra(
-                                GroupDetailsActivity.EXTRA_SPLIT,
+                                "EXTRA_SPLIT",
                                 ArrayList(selectedMembers)
-                            )*/
+                            )
                         }
                         startActivity(intent)
+                        finish()
                     }
                 }
             }
@@ -149,6 +167,9 @@ class AddEditExpenseActivity : AppCompatActivity() {
 @Preview
 @Composable
 fun AddEditExpenseScreen(
+    groups: List<com.example.budgetbuddy.data.SharedGroup> = emptyList(),
+    selectedGroupId: String = "",
+    onGroupSelected: (String) -> Unit = {},
     members: List<String> = emptyList(),
     onCameraClick: () -> Unit = {},
     onAddExpenseClick: (
@@ -200,6 +221,23 @@ fun AddEditExpenseScreen(
             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
             textAlign = TextAlign.Center
         )
+
+        // Group Selection
+        if (groups.isNotEmpty()) {
+            FormFieldLabel(text = "Group")
+            val groupNames = groups.map { it.groupName }
+            val selectedGroupName = groups.find { it.id == selectedGroupId }?.groupName ?: ""
+            CustomDropdownMenu(
+                options = groupNames,
+                selectedOption = selectedGroupName,
+                placeholder = "Select Group",
+                onOptionSelected = { name -> 
+                    val group = groups.find { it.groupName == name }
+                    if (group != null) onGroupSelected(group.id)
+                },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+        }
 
         // Title Section
         FormFieldLabel(text = "Title")
@@ -637,4 +675,5 @@ fun AddEditExpenseScreenPreview() {
     MaterialTheme {
         AddEditExpenseScreen()
     }
+}
 }

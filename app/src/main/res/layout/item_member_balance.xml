@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_group_row"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp">
+
+    <TextView
+        android:id="@+id/tvMemberAvatar"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_circle_badge"
+        android:gravity="center"
+        android:text="A"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#1E4D45" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="14dp">
+
+        <TextView
+            android:id="@+id/tvMemberName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Amira"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#111827" />
+
+        <TextView
+            android:id="@+id/tvMemberMeTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Me"
+            android:textSize="12sp"
+            android:textColor="#9CA3AF"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvMemberNetBalance"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="-200EGP"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="#EA580C" />
+</LinearLayout>
