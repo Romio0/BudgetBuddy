@@ -35,7 +35,6 @@ class ExpenseRepository(private val db: AppDatabase) {
             return Result.failure(Exception("Please fill in all fields"))
         }
 
-        // التأكد إن الاسم مش مستخدم قبل كده
         val existingSnap = awaitTask(usersCollection.whereEqualTo("fullName", cleanName).get())
             ?: return Result.failure(Exception("Network error, check your internet connection"))
 
@@ -80,7 +79,6 @@ class ExpenseRepository(private val db: AppDatabase) {
         val name = doc.getString("fullName") ?: cleanName
         val phone = doc.getString("phone") ?: ""
 
-        // استرجاع كل جروبات اليوزر تلقائياً لو كان ماسح التطبيق ونزله تاني
         val savedCodes = doc.get("groupCodes") as? List<*>
         savedCodes?.forEach { code ->
             if (code is String && code.isNotBlank()) {
@@ -99,20 +97,16 @@ class ExpenseRepository(private val db: AppDatabase) {
         )
     }
 
-    // لتخزين الـ Listeners النشطة وقفلها لما الشاشة تتقفل
     private var membersListener: ListenerRegistration? = null
     private var expensesListener: ListenerRegistration? = null
 
-    // =========================================================================
-    // 1. دوال الجروبات (Local Room + Cloud Firestore)
-    // =========================================================================
+
 
     suspend fun createGroupWithMembers(groupName: String, members: List<String>): SharedGroup {
         val code = "BUD-" + (100..999).random()
         val group = SharedGroup(groupName = groupName, groupCode = code)
         db.groupDao().insertGroup(group)
 
-        // رفع الجروب على Firestore
         val groupRef = groupsCollection.document(group.groupCode)
         groupRef.set(groupToMap(group))
 
@@ -120,7 +114,6 @@ class ExpenseRepository(private val db: AppDatabase) {
             if (name.isNotBlank()) {
                 val member = Member(groupId = group.id, memberName = name.trim())
                 db.memberDao().insertMember(member)
-                // رفع العضو تحت الجروب في Firestore
                 groupRef.collection("members").document(member.id).set(memberToMap(member))
             }
         }
@@ -141,9 +134,7 @@ class ExpenseRepository(private val db: AppDatabase) {
         groupsCollection.document(group.groupCode).delete()
     }
 
-    // =========================================================================
-    // 2. دوال الأعضاء (Local Room + Cloud Firestore)
-    // =========================================================================
+
 
     suspend fun getMembersForGroup(groupId: String): List<Member> = db.memberDao().getMembersForGroup(groupId)
 
@@ -173,9 +164,7 @@ class ExpenseRepository(private val db: AppDatabase) {
         }
     }
 
-    // =========================================================================
-    // 3. دوال المصاريف (Local Room + Cloud Firestore)
-    // =========================================================================
+
 
     suspend fun addExpense(expense: ExpenseItem) {
         db.expenseDao().insertExpense(expense)
@@ -212,9 +201,7 @@ class ExpenseRepository(private val db: AppDatabase) {
         }
     }
 
-    // =========================================================================
-    // 4. الانضمام لجروب بالكود (Join Group by Code)
-    // =========================================================================
+
 
     suspend fun joinGroupByCode(rawCode: String): Result<SharedGroup> {
         val code = rawCode.trim().uppercase()
@@ -222,7 +209,6 @@ class ExpenseRepository(private val db: AppDatabase) {
 
         val groupRef = groupsCollection.document(code)
 
-        // 1. البحث عن الجروب في Firestore
         val groupSnap = awaitTask(groupRef.get())
             ?: return Result.failure(Exception("تعذر الاتصال بالسيرفر، تأكد من الإنترنت"))
 
@@ -235,14 +221,12 @@ class ExpenseRepository(private val db: AppDatabase) {
         val groupCode = groupSnap.getString("groupCode") ?: code
         val sharedGroup = SharedGroup(id = groupId, groupName = groupName, groupCode = groupCode)
 
-        // حفظ أو تحديث الجروب في Room محلياً
         if (db.groupDao().getGroupById(groupId) == null) {
             db.groupDao().insertGroup(sharedGroup)
         } else {
             db.groupDao().updateGroup(sharedGroup)
         }
 
-        // 2. سحب كل الأعضاء وحفظهم في Room
         val membersSnap = awaitTask(groupRef.collection("members").get())
         val existingMemberIds = db.memberDao().getMembersForGroup(groupId).map { it.id }.toSet()
         membersSnap?.documents?.forEach { doc ->
@@ -253,7 +237,6 @@ class ExpenseRepository(private val db: AppDatabase) {
             }
         }
 
-        // 3. سحب كل المصاريف وحفظها في Room
         val expensesSnap = awaitTask(groupRef.collection("expenses").get())
         val existingExpenseIds = db.expenseDao().getExpensesForGroup(groupId).map { it.id }.toSet()
         expensesSnap?.documents?.forEach { doc ->
@@ -268,16 +251,13 @@ class ExpenseRepository(private val db: AppDatabase) {
         return Result.success(sharedGroup)
     }
 
-    // =========================================================================
-    // 5. المزامنة اللحظية (Real-Time Snapshot Listeners)
-    // =========================================================================
+  
 
     fun startGroupSync(groupCode: String, groupId: String, onDataChanged: () -> Unit) {
-        stopGroupSync() // قفل أي مستمع قديم قبل فتح واحد جديد
+        stopGroupSync() 
         val groupRef = groupsCollection.document(groupCode)
 
-        // أ) مراقبة تغييرات الأعضاء لحظياً
-        membersListener = groupRef.collection("members").addSnapshotListener { snapshots, error ->
+              membersListener = groupRef.collection("members").addSnapshotListener { snapshots, error ->
             if (error != null || snapshots == null) {
                 Log.e("FirestoreSync", "Members sync error: ${error?.message}")
                 return@addSnapshotListener
@@ -287,7 +267,6 @@ class ExpenseRepository(private val db: AppDatabase) {
                 val localIds = localMembers.map { it.id }.toSet()
                 val remoteIds = snapshots.documents.map { it.id }.toSet()
 
-                // إضافة الأعضاء الجداد اللي أضافهم أصحابك
                 for (doc in snapshots.documents) {
                     val mId = doc.getString("id") ?: doc.id
                     val mName = doc.getString("memberName") ?: continue
@@ -295,7 +274,6 @@ class ExpenseRepository(private val db: AppDatabase) {
                         db.memberDao().insertMember(Member(id = mId, groupId = groupId, memberName = mName))
                     }
                 }
-                // حذف الأعضاء اللي اتحذفوا من السحابة
                 for (local in localMembers) {
                     if (local.id !in remoteIds) {
                         db.memberDao().deleteMember(local)
@@ -305,7 +283,6 @@ class ExpenseRepository(private val db: AppDatabase) {
             }
         }
 
-        // ب) مراقبة تغييرات المصاريف لحظياً (إضافة / تعديل / حذف)
         expensesListener = groupRef.collection("expenses").addSnapshotListener { snapshots, error ->
             if (error != null || snapshots == null) {
                 Log.e("FirestoreSync", "Expenses sync error: ${error?.message}")
@@ -341,9 +318,7 @@ class ExpenseRepository(private val db: AppDatabase) {
         expensesListener = null
     }
 
-    // =========================================================================
-    // 6. دوال التحويل المساعدة (Data Mapping & Task Await)
-    // =========================================================================
+
 
     private fun groupToMap(group: SharedGroup): Map<String, Any> = mapOf(
         "id" to group.id,
