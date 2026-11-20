@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
 
     data class GroupUiModel(
         val group: SharedGroup,
-        val netBalance: Double // موجب = ليك فلوس، سالب = عليك فلوس، صفر = خالصين
+        val netBalance: Double 
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,7 +66,6 @@ class MainActivity : AppCompatActivity() {
         prefs = PrefsManager(this)
         repository = ExpenseRepository(AppDatabase.getInstance(this))
 
-        // ربط عناصر الواجهة
         tvGreeting = findViewById(R.id.tvGreeting)
         tvCurrentDate = findViewById(R.id.tvCurrentDate)
         tvProfileAvatar = findViewById(R.id.tvProfileAvatar)
@@ -83,7 +82,6 @@ class MainActivity : AppCompatActivity() {
 
         setupHeaderInfo()
 
-        // التنقل لشاشة البروفايل عند الضغط على الصورة أو التحية
         tvProfileAvatar.setOnClickListener {
             startActivity(Intent(this, ProfileActivity::class.java))
         }
@@ -91,16 +89,13 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, ProfileActivity::class.java))
         }
 
-        // أزرار إنشاء جروب والانضمام بكود
         btnCreateGroup.setOnClickListener { showCreateGroupDialog() }
         btnJoinGroup.setOnClickListener { showJoinGroupDialog() }
 
-        // زرار Settle Up يفتح سجل المصاريف والتسويات
         btnSettleUp.setOnClickListener {
             startActivity(Intent(this, AllExpensesActivity::class.java))
         }
 
-        // شريط التنقل السفلي
         navAddExpense.setOnClickListener {
             startActivity(Intent(this, AddEditExpenseActivity::class.java))
         }
@@ -109,7 +104,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, AllExpensesActivity::class.java))
         }
 
-        // فتح تفاصيل الجروب عند الضغط على أي صف
         lvGroups.setOnItemClickListener { _, _, position, _ ->
             val selected = groupDisplayList[position].group
             val intent = Intent(this, GroupDetailsActivity::class.java).apply {
@@ -291,7 +285,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // Adapter مخصص لعرض كروت الجروبات بنفس التصميم
     inner class GroupsAdapter(private val items: List<GroupUiModel>) : BaseAdapter() {
         override fun getCount(): Int = items.size
         override fun getItem(position: Int): Any = items[position]
@@ -319,15 +312,15 @@ class MainActivity : AppCompatActivity() {
             when {
                 item.netBalance > 0.01 -> {
                     tvStatus.text = "You're Owed ${item.netBalance.toInt()} EGP  •  ${item.group.groupCode}"
-                    tvStatus.setTextColor(Color.parseColor("#16A34A")) // أخضر
+                    tvStatus.setTextColor(Color.parseColor("#16A34A")) 
                 }
                 item.netBalance < -0.01 -> {
                     tvStatus.text = "You Owe ${abs(item.netBalance).toInt()} EGP  •  ${item.group.groupCode}"
-                    tvStatus.setTextColor(Color.parseColor("#DC2626")) // أحمر
+                    tvStatus.setTextColor(Color.parseColor("#DC2626")) 
                 }
                 else -> {
                     tvStatus.text = "Settled Up  •  Code: ${item.group.groupCode}"
-                    tvStatus.setTextColor(Color.parseColor("#6B7280")) // رمادي
+                    tvStatus.setTextColor(Color.parseColor("#6B7280")) 
                 }
             }
 
