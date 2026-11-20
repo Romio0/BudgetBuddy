@@ -13,27 +13,31 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.BudgetBuddy">
+
         <activity
             android:name=".ui.ProfileActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.AllExpensesActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.AddEditExpenseActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.GroupDetailsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-    </application>
 
+        <activity
+            android:name=".ui.GroupDetailsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false" />
+
+    </application>
 </manifest>
