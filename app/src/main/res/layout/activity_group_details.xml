@@ -1,10 +1,280 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:id="@+id/mainGroupDetails"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F7F6"
     tools:context=".ui.GroupDetailsActivity">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- White Top Header + 2 Tabs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#FFFFFF"
+        android:paddingTop="12dp">
+
+        <!-- Back Arrow & Settings Gear -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:paddingHorizontal="20dp">
+
+            <TextView
+                android:id="@+id/btnBackGroup"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentStart="true"
+                android:gravity="center_vertical"
+                android:text="←"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#111827" />
+
+            <TextView
+                android:id="@+id/btnGroupSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_alignParentEnd="true"
+                android:gravity="center_vertical|end"
+                android:text="⚙"
+                android:textSize="22sp"
+                android:textColor="#374151" />
+        </RelativeLayout>
+
+        <!-- Circular Group Avatar -->
+        <TextView
+            android:id="@+id/tvGroupDetailAvatar"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_circle_badge"
+            android:gravity="center"
+            android:text="RM"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="#1E4D45" />
+
+        <!-- Group Name -->
+        <TextView
+            android:id="@+id/tvGroupDetailName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Roommates"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:textColor="#111827"
+            android:layout_marginTop="10dp" />
+
+        <!-- Group Code Pill -->
+        <TextView
+            android:id="@+id/tvGroupDetailCode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Code: BUD-000"
+            android:textSize="12sp"
+            android:textColor="#6B7280"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 2 Tabs Row: Expenses | Balances -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:orientation="horizontal">
+
+            <!-- Tab 1: Expenses -->
+            <LinearLayout
+                android:id="@+id/tabExpenses"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/tvTabExpenses"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Expenses"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827" />
+
+                <View
+                    android:id="@+id/indExpenses"
+                    android:layout_width="64dp"
+                    android:layout_height="3dp"
+                    android:background="#285951" />
+            </LinearLayout>
+
+            <!-- Tab 2: Balances -->
+            <LinearLayout
+                android:id="@+id/tabBalances"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:id="@+id/tvTabBalances"
+                    android:layout_width="wrap_content"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="Balances"
+                    android:textSize="15sp"
+                    android:textColor="#6B7280" />
+
+                <View
+                    android:id="@+id/indBalances"
+                    android:layout_width="64dp"
+                    android:layout_height="3dp"
+                    android:background="#285951"
+                    android:visibility="invisible" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ========================================================= -->
+    <!-- CONTAINER 1: EXPENSES TAB                                 -->
+    <!-- ========================================================= -->
+    <LinearLayout
+        android:id="@+id/layoutExpensesTab"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="12dp">
+
+        <TextView
+            android:id="@+id/tvEmptyGroupExpenses"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No expenses in this group yet.\nTap 'Add Expense' below to start tracking."
+            android:gravity="center"
+            android:padding="36dp"
+            android:textColor="#9CA3AF"
+            android:visibility="gone" />
+
+        <ListView
+            android:id="@+id/lvGroupExpenses"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="0dp"
+            android:scrollbars="none" />
+
+        <Button
+            android:id="@+id/btnGroupAddExpense"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:text="Add Expense"
+            android:textAllCaps="false"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#285951"
+            android:layout_marginVertical="14dp" />
+    </LinearLayout>
+
+    <!-- ========================================================= -->
+    <!-- CONTAINER 2: BALANCES TAB                                 -->
+    <!-- ========================================================= -->
+    <LinearLayout
+        android:id="@+id/layoutBalancesTab"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp"
+        android:visibility="gone">
+
+        <!-- Top User Status Banner Card (You Owe / You're Owed + Settle Up) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_group_row"
+            android:padding="16dp"
+            android:layout_marginBottom="18dp">
+
+            <TextView
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:gravity="center"
+                android:text="💸"
+                android:textSize="26sp" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tvBannerBalanceTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="You Are Settled Up"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827" />
+
+                <TextView
+                    android:id="@+id/tvBannerBalanceSub"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No pending debts"
+                    android:textSize="12sp"
+                    android:textColor="#9CA3AF"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnBannerSettleUp"
+                android:layout_width="wrap_content"
+                android:layout_height="38dp"
+                android:text="Settle Up"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#285951"
+                android:paddingHorizontal="14dp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Balances"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#111827"
+            android:layout_marginBottom="10dp" />
+
+        <ListView
+            android:id="@+id/lvMemberBalances"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="0dp"
+            android:scrollbars="none" />
+    </LinearLayout>
+
+</LinearLayout>
