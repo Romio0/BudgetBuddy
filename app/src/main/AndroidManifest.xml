@@ -34,9 +34,11 @@
         <activity
             android:name=".ui.ProfileActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.AllExpensesActivity"
             android:exported="false" />
+
         <activity
             android:name=".ui.AddEditExpenseActivity"
             android:exported="false" />
@@ -46,4 +48,13 @@
 
     </application>
 
+        <activity
+            android:name=".ui.GroupDetailsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="false" />
+
+    </application>
 </manifest>
