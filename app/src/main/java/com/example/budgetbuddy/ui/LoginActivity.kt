@@ -19,7 +19,6 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. فحص الدخول التلقائي: لو اليوزر مسجل دخول يدخل على Home Page فوراً
         val prefs = PrefsManager(this)
         if (prefs.isLoggedIn()) {
             startActivity(Intent(this, MainActivity::class.java))
