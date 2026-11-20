@@ -61,6 +61,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
@@ -198,12 +199,49 @@ fun AddEditExpenseScreen(
         }
     }
 
+    val customSplitAmounts = remember(members) {
+        mutableStateMapOf<String, String>()
+    }
+
+    val isCustomSplit = remember(members) {
+        mutableStateMapOf<String, Boolean>()
+    }
+
     val context = LocalContext.current
 
-    val numSelected = memberSelections.values.count { it }
     val totalAmount = amount.toDoubleOrNull() ?: 0.0
-    val splitAmountPerPerson = if (numSelected > 0) totalAmount / numSelected else 0.0
-    val formattedSplitAmount = String.format(Locale.US, "%.2f", splitAmountPerPerson)
+
+    val customTotal = memberSelections.entries
+        .filter { (m, checked) -> checked && (isCustomSplit[m] == true) }
+        .sumOf { (m, _) -> customSplitAmounts[m]?.toDoubleOrNull() ?: 0.0 }
+
+    val nonCustomCheckedCount = memberSelections.entries
+        .count { (m, checked) -> checked && (isCustomSplit[m] != true) }
+
+    val remainingAmount = maxOf(0.0, totalAmount - customTotal)
+    val defaultSharePerNonCustom = if (nonCustomCheckedCount > 0) remainingAmount / nonCustomCheckedCount else 0.0
+    val formattedDefaultShare = String.format(Locale.US, "%.2f", defaultSharePerNonCustom)
+
+    fun getMemberSplitDisplayAmount(member: String): String {
+        val isChecked = memberSelections[member] ?: false
+        if (!isChecked) {
+            return "0.00"
+        }
+        if (isCustomSplit[member] == true) {
+            return customSplitAmounts[member] ?: ""
+        }
+        return formattedDefaultShare
+    }
+
+    val onToggleMember: (String) -> Unit = { member ->
+        val currentChecked = memberSelections[member] ?: false
+        val newChecked = !currentChecked
+        memberSelections[member] = newChecked
+        if (!newChecked) {
+            isCustomSplit[member] = false
+            customSplitAmounts[member] = ""
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -354,46 +392,79 @@ fun AddEditExpenseScreen(
                 Column {
                     members.forEachIndexed { index, member ->
                         val isChecked = memberSelections[member] ?: false
+                        val displayAmount = getMemberSplitDisplayAmount(member)
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { memberSelections[member] = !isChecked }
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Checkbox(
-                                checked = isChecked,
-                                onCheckedChange = { memberSelections[member] = it },
-                                colors = CheckboxDefaults.colors(
-                                    checkedColor = BorderColor,
-                                    uncheckedColor = BorderColor,
-                                    checkmarkColor = Color.White
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onToggleMember(member) },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { onToggleMember(member) },
+                                    colors = CheckboxDefaults.colors(
+                                        checkedColor = BorderColor,
+                                        uncheckedColor = BorderColor,
+                                        checkmarkColor = Color.White
+                                    )
                                 )
-                            )
 
-                            Text(
-                                text = member,
-                                fontSize = 16.sp,
-                                color = TextDark,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
+                                Text(
+                                    text = member,
+                                    fontSize = 16.sp,
+                                    color = TextDark,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
 
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Box(
+                            BasicTextField(
+                                value = if (!isChecked && displayAmount == "0.00") "" else displayAmount,
+                                onValueChange = { newText ->
+                                    isCustomSplit[member] = true
+                                    customSplitAmounts[member] = newText
+                                    if (!isChecked) {
+                                        memberSelections[member] = true
+                                    }
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                textStyle = TextStyle(
+                                    color = TextDark,
+                                    fontSize = 15.sp,
+                                    textAlign = TextAlign.Center,
+                                    fontWeight = FontWeight.Normal
+                                ),
+                                cursorBrush = SolidColor(TealDark),
                                 modifier = Modifier
                                     .width(100.dp)
                                     .height(36.dp)
-                                    .background(TealLightPill, shape = RoundedCornerShape(6.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = if (isChecked) formattedSplitAmount else "0.00",
-                                    fontSize = 15.sp,
-                                    color = TextDark,
-                                    fontWeight = FontWeight.Normal
-                                )
-                            }
+                                    .background(TealLightPill, shape = RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                decorationBox = { innerTextField ->
+                                    Box(
+                                        contentAlignment = Alignment.Center,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        val currentText = if (!isChecked && displayAmount == "0.00") "" else displayAmount
+                                        if (currentText.isEmpty()) {
+                                            Text(
+                                                text = "0.00",
+                                                fontSize = 15.sp,
+                                                color = PlaceholderGray,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
                         }
 
                         if (index < (members.size - 1)) {
