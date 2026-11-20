@@ -27,7 +27,6 @@ class SignupActivity : AppCompatActivity() {
     private var selectedPhotoUri: String = ""
     private lateinit var ivAvatar: ImageView
 
-    // 1. اختيار صورة من المعرض (Gallery)
     private val pickGalleryLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) {
@@ -39,7 +38,6 @@ class SignupActivity : AppCompatActivity() {
             }
         }
 
-    // 2. التقاط صورة بالكاميرا (Camera)
     private val takeCameraLauncher =
         registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
             if (bitmap != null) {
@@ -108,7 +106,6 @@ class SignupActivity : AppCompatActivity() {
         }
     }
 
-    // تحويل الـ ImageView لدايرة وعرض الصورة جواها
     private fun showCircularAvatar(uri: Uri) {
         ivAvatar.setPadding(0, 0, 0, 0)
         ivAvatar.setBackgroundResource(R.drawable.bg_circle_badge)
