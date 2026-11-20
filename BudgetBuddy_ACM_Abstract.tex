@@ -1,0 +1,117 @@
+\documentclass[sigconf,nonacm]{acmart}
+
+\usepackage{booktabs}
+\usepackage{amsmath}
+
+\begin{document}
+
+\title{BudgetBuddy: An Offline-First Android Application for Real-Time Shared Expense Management}
+
+\author{Team 56}
+
+\begin{abstract}
+Managing shared expenses among roommates, friends, and travel groups requires consistent multi-user synchronization, transparent balance calculation, and low-friction mobile interaction even under intermittent connectivity. We present \textbf{BudgetBuddy}, an Android application written in Kotlin that combines an offline-first local Room persistence layer with Cloud Firestore real-time synchronization to support collaborative group budgeting. Users can register and restore their group memberships across devices, create or join expense groups using short invite codes (\texttt{BUD-XXX}), log categorized expenses with equal member splitting, and inspect per-group balances alongside a chronological cross-group activity feed. BudgetBuddy adopts a hybrid user interface architecture pairing Material~3 Jetpack Compose for dynamic expense entry with AppCompat XML views and edge-to-edge layouts for list-driven dashboards. We detail the system's data model, bidirectional synchronization protocol, balance computation, and remaining engineering steps toward production readiness.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10003120.10003138.10003140</concept_id>
+       <concept_desc>Human-centered computing~Ubiquitous and mobile computing systems and tools</concept_desc>
+       <concept_significance>500</concept_significance>
+   </concept>
+   <concept>
+       <concept_id>10002951.10002952.10003190</concept_id>
+       <concept_desc>Information systems~Database management system engines</concept_desc>
+       <concept_significance>300</concept_significance>
+   </concept>
+</ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Human-centered computing~Ubiquitous and mobile computing systems and tools}
+\ccsdesc[300]{Information systems~Database management system engines}
+
+\keywords{Android, Mobile Computing, Expense Sharing, Offline-First Architecture, Room, Cloud Firestore, Jetpack Compose}
+
+\maketitle
+
+\section{Introduction}
+Group activities such as shared housing, dining, and trips frequently generate asymmetric payments where one participant pays on behalf of others. Tracking who owes whom manually is error-prone, while cloud-only applications become unresponsive when mobile connectivity degrades.
+
+\textbf{BudgetBuddy} (\texttt{com.example.budgetbuddy}) addresses these challenges on Android (\texttt{minSdk 24}, \texttt{targetSdk 35}) by maintaining an authoritative local SQLite store via Jetpack Room~\cite{room} while mirroring mutations to Cloud Firestore~\cite{firestore}. Groups are identified by human-readable three-digit invite codes (\texttt{BUD-XXX}), allowing collaborators to join a shared ledger without complex onboarding. Once inside a group, real-time Firestore snapshot listeners propagate member additions and expense updates across connected clients, while net balances are computed deterministically on-device.
+
+\section{System Architecture \& Data Model}
+BudgetBuddy follows a repository-driven architecture centered on \texttt{ExpenseRepository}, which mediates between the local \texttt{AppDatabase} (Room v1, database \texttt{budget\_db}) and Cloud Firestore. Session state—including login status, user identifier, display name, phone number, and local profile image URI—is persisted via \texttt{PrefsManager} using Android \texttt{SharedPreferences}.
+
+\subsection{Local Persistence and Cloud Schema}
+Local data is normalized across three Room entities with cascading foreign-key constraints on \texttt{groupId}, ensuring referential integrity if a group is deleted:
+
+\begin{table}[h]
+  \caption{Room Entities and Corresponding Firestore Paths}
+  \label{tab:schema}
+  \small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    \textbf{Entity / Table} & \textbf{Key Attributes} & \textbf{Firestore Path} \\
+    \midrule
+    \texttt{SharedGroup} & \texttt{id} (PK), \texttt{groupName}, & \texttt{groups/\{groupCode\}} \\
+    (\texttt{shared\_groups}) & \texttt{groupCode} & \\
+    \addlinespace
+    \texttt{Member} & \texttt{id} (PK), \texttt{groupId} (FK), & \texttt{groups/\{groupCode\}/} \\
+    (\texttt{members}) & \texttt{memberName} & \texttt{members/\{memberId\}} \\
+    \addlinespace
+    \texttt{ExpenseItem} & \texttt{id} (PK), \texttt{groupId} (FK), & \texttt{groups/\{groupCode\}/} \\
+    (\texttt{expense\_items}) & \texttt{title}, \texttt{category}, \texttt{amount}, & \texttt{expenses/\{expenseId\}} \\
+     & \texttt{paidBy}, \texttt{splitAmong}, \texttt{date} & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+User accounts are stored in the top-level \texttt{users/\{userId\}} Firestore collection, maintaining \texttt{fullName}, \texttt{phone}, credentials, and a \texttt{groupCodes} array. Upon login, \texttt{ExpenseRepository.loginUser} iterates through \texttt{groupCodes} and invokes \texttt{joinGroupByCode} to recover all previously joined groups, members, and expenses onto a fresh device installation.
+
+\subsection{Offline-First Write-Through and Real-Time Sync}
+All group, member, and expense mutations follow a write-through pattern: updates are committed immediately to Room via Kotlin coroutines (\texttt{suspend} DAO functions) and mirrored asynchronously to Firestore.
+
+For collaborative editing, \texttt{GroupDetailsActivity} attaches real-time \texttt{ListenerRegistration} snapshot listeners on \texttt{members} and \texttt{expenses} subcollections during \texttt{onStart()} and detaches them in \texttt{onStop()} via \texttt{stopGroupSync()}. Incoming remote snapshots are reconciled against Room on \texttt{Dispatchers.IO} by inserting missing records, updating modified expenses, and deleting locally cached entries absent from the remote snapshot before notifying the UI thread to refresh.
+
+\section{Expense Splitting \& User Interface}
+\subsection{Net Balance Formulation}
+For a group $g$ with member set $M_g$ and expense list $E_g$, each expense $e \in E_g$ has amount $A_e$, payer $p_e$, and a non-empty participant subset $S_e \subseteq M_g$ parsed from the comma-separated \texttt{splitAmong} field. BudgetBuddy applies an equal-split model where each participant's share is $A_e / |S_e|$. The net balance $B_u$ of user $u$ in group $g$ is computed as:
+\begin{equation}
+  B_u = \sum_{\substack{e \in E_g \\ p_e = u}} A_e - \sum_{\substack{e \in E_g \\ u \in S_e}} \frac{A_e}{|S_e|}
+\end{equation}
+A positive value ($B_u > 0.01$) indicates that $u$ is owed funds, whereas a negative value ($B_u < -0.01$) indicates an amount owed. Across the home dashboard (\texttt{MainActivity}), positive and negative group balances are aggregated separately into \emph{Total Owed} and \emph{Total I Owe} summary cards.
+
+\subsection{Hybrid UI Design}
+The application spans seven \texttt{AppCompatActivity} screens configured with edge-to-edge window insets:
+\begin{itemize}
+  \item \textbf{Authentication (\texttt{LoginActivity}, \texttt{SignupActivity}):} Handles auto-login redirection, registration, and circular avatar capture via Android's \texttt{GetContent} and \texttt{TakePicturePreview} activity result contracts, stored locally as \texttt{user\_avatar.jpg}.
+  \item \textbf{Dashboard \& Activity Feed (\texttt{MainActivity}, \texttt{AllExpensesActivity}):} Uses XML layouts with \texttt{ListView} and custom \texttt{BaseAdapter} implementations to display group cards with initials badges, balance color coding, and a date-grouped (\emph{Today}, \emph{Yesterday}, or date) cross-group expense feed.
+  \item \textbf{Group Details (\texttt{GroupDetailsActivity}):} Provides a two-tab view switching between categorized expense rows (with emoji category inference) and per-member net balances, alongside group code sharing and member addition dialogs.
+  \item \textbf{Expense Entry (\texttt{AddEditExpenseActivity}):} Embeds a Material~3 Jetpack Compose hierarchy inside a \texttt{ComposeView}~\cite{compose}, offering reactive group/member dropdowns, \texttt{DatePickerDialog} integration, camera receipt capture hooks, and live per-person split previews as participants are toggled.
+\end{itemize}
+
+\section{Implementation Status \& Limitations}
+BudgetBuddy builds with Kotlin~2.0.21, Android Gradle Plugin~8.11.2, Room~2.6.1, and Firebase BOM~33.7.0. Code inspection identifies four areas slated for completion prior to production deployment:
+\begin{enumerate}
+  \item \textbf{Direct Expense Persistence:} \texttt{AddEditExpenseActivity} currently forwards entered fields back to \texttt{GroupDetailsActivity} via \texttt{Intent} extras rather than invoking \texttt{ExpenseRepository.addExpense} directly.
+  \item \textbf{Profile Screen Completion:} \texttt{ProfileActivity} currently renders a minimal layout without user metadata display or a sign-out trigger invoking \texttt{PrefsManager.logout()}.
+  \item \textbf{Authentication Hardening:} User credentials are currently queried directly in Firestore; migrating to Firebase Authentication with strict Firestore Security Rules is required for production security.
+  \item \textbf{Multi-Currency Normalization:} Although the Compose expense form supports selecting \texttt{EGP}, \texttt{USD}, \texttt{EUR}, \texttt{GBP}, \texttt{SAR}, and \texttt{AED}, stored expenses and balance summaries currently assume \texttt{EGP} without currency metadata or conversion.
+\end{enumerate}
+
+\section{Conclusion}
+BudgetBuddy demonstrates a practical offline-first architecture for mobile shared-expense management, combining local Room reliability, real-time Firestore group synchronization, and an incremental migration path from XML views to Jetpack Compose. Completing direct repository persistence from the Compose form, profile management, and Firebase Authentication integration will finalize the system for general release.
+
+\begin{thebibliography}{9}
+\bibitem{room}
+Android Developers. 2024. \emph{Save data in a local database using Room}. Google. \url{https://developer.android.com/training/data-storage/room}
+
+\bibitem{firestore}
+Google Firebase. 2024. \emph{Cloud Firestore Documentation}. Google. \url{https://firebase.google.com/docs/firestore}
+
+\bibitem{compose}
+Android Developers. 2024. \emph{Jetpack Compose: Interoperability APIs}. Google. \url{https://developer.android.com/develop/ui/compose/migrate/interoperability-apis}
+\end{thebibliography}
+
+\end{document}
