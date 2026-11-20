@@ -8,7 +8,6 @@
     android:background="#F8FAF9"
     tools:context=".ui.AllExpensesActivity">
 
-    <!-- Main Content Area -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -17,7 +16,6 @@
         android:paddingHorizontal="20dp"
         android:paddingTop="16dp">
 
-        <!-- Top Bar with Back Button & Centered Title -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="40dp"
@@ -44,7 +42,6 @@
                 android:textColor="#111827" />
         </RelativeLayout>
 
-        <!-- Empty State -->
         <TextView
             android:id="@+id/tvEmptyActivity"
             android:layout_width="match_parent"
@@ -56,7 +53,6 @@
             android:textSize="14sp"
             android:visibility="gone" />
 
-        <!-- Activity ListView -->
         <ListView
             android:id="@+id/lvAllActivity"
             android:layout_width="match_parent"
@@ -68,7 +64,6 @@
 
     </LinearLayout>
 
-    <!-- Floating Bottom Navigation Bar (Activity Active) -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="82dp"
@@ -83,7 +78,6 @@
             android:elevation="8dp"
             android:paddingHorizontal="20dp">
 
-            <!-- Home Tab (Inactive) -->
             <LinearLayout
                 android:id="@+id/navHomeFromActivity"
                 android:layout_width="0dp"
@@ -107,7 +101,7 @@
                     android:textColor="#6B7280" />
             </LinearLayout>
 
-            <!-- Center Add Expense Label -->
+
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
@@ -125,7 +119,7 @@
                     android:textColor="#374151" />
             </LinearLayout>
 
-            <!-- Activity Tab (Active Teal) -->
+
             <LinearLayout
                 android:id="@+id/navActivityCurrent"
                 android:layout_width="0dp"
@@ -152,7 +146,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Raised Circular '+' Button -->
+
         <TextView
             android:id="@+id/navAddExpenseFromActivity"
             android:layout_width="54dp"
