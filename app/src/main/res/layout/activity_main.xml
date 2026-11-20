@@ -1,19 +1,316 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F8FAF9"
     tools:context=".ui.MainActivity">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+    <!-- Main Content Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="16dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- Top Profile & Greeting Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="18dp">
+
+            <!-- Circular Profile Avatar (Image or Initial) -->
+            <FrameLayout
+                android:id="@+id/flProfileAvatar"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:background="@drawable/bg_circle_badge">
+
+                <TextView
+                    android:id="@+id/tvProfileAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="R"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="#1E4D45" />
+
+                <ImageView
+                    android:id="@+id/ivProfileAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_circle_badge"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    android:contentDescription="User Avatar" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:id="@+id/tvGreeting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Good Morning, User"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827" />
+
+                <TextView
+                    android:id="@+id/tvCurrentDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="November 20, 2026"
+                    android:textSize="12sp"
+                    android:textColor="#6B7280"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <!-- Join by Code Quick Pill -->
+            <Button
+                android:id="@+id/btnJoinGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="Join Code"
+                android:textSize="12sp"
+                android:textAllCaps="false"
+                android:textColor="#1E4D45"
+                android:backgroundTint="#E6EFEA"
+                android:paddingHorizontal="12dp" />
+        </LinearLayout>
+
+        <!-- Teal Balance Summary Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_summary_card"
+            android:padding="18dp"
+            android:layout_marginBottom="20dp">
+
+            <!-- Row 1: Total Owed -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="In Total, You Are Owed"
+                    android:textSize="14sp"
+                    android:textColor="#E2E8F0" />
+
+                <TextView
+                    android:id="@+id/tvTotalOwed"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 EGP"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <!-- Row 2: Total Owe -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="14dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total You're Owe"
+                    android:textSize="14sp"
+                    android:textColor="#E2E8F0" />
+
+                <TextView
+                    android:id="@+id/tvTotalOwe"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 EGP"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <!-- Settle Up Button -->
+            <Button
+                android:id="@+id/btnSettleUp"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_gravity="end"
+                android:text="Settle Up"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:textColor="#1E4D45"
+                android:backgroundTint="#FFFFFF"
+                android:paddingHorizontal="18dp" />
+        </LinearLayout>
+
+        <!-- Section Title + Create Group Button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Your Groups"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="#111827" />
+
+            <Button
+                android:id="@+id/btnCreateGroup"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="+ New Group"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textAllCaps="false"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#285951"
+                android:paddingHorizontal="14dp" />
+        </LinearLayout>
+
+        <!-- Empty State -->
+        <TextView
+            android:id="@+id/tvEmptyGroups"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="No groups yet.\nTap '+ New Group' to create one or 'Join Code' to enter a friend's group."
+            android:gravity="center"
+            android:padding="32dp"
+            android:textColor="#9CA3AF"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <!-- Groups ListView -->
+        <ListView
+            android:id="@+id/lvGroups"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:divider="@android:color/transparent"
+            android:dividerHeight="10dp"
+            android:scrollbars="none" />
+
+    </LinearLayout>
+
+    <!-- Bottom Navigation Bar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E5E7EB" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="68dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="#FFFFFF"
+        android:paddingHorizontal="24dp">
+
+        <!-- Home Tab -->
+        <LinearLayout
+            android:id="@+id/navHome"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⌂"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="#285951" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Home"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#285951" />
+        </LinearLayout>
+
+        <!-- Center Add Expense Button -->
+        <LinearLayout
+            android:id="@+id/navAddExpense"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_summary_card"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Expense"
+                android:textSize="10sp"
+                android:textColor="#4B5563"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Activity (All Expenses) Tab -->
+        <LinearLayout
+            android:id="@+id/navActivity"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🕒"
+                android:textSize="18sp"
+                android:textColor="#6B7280" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Activity"
+                android:textSize="11sp"
+                android:textColor="#6B7280" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

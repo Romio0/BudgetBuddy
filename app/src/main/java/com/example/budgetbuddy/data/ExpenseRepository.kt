@@ -14,6 +14,91 @@ class ExpenseRepository(private val db: AppDatabase) {
     private val firestore = FirebaseFirestore.getInstance()
     private val groupsCollection = firestore.collection("groups")
 
+
+    private val usersCollection = firestore.collection("users")
+
+    // =========================================================================
+    //  (Sign Up, Log In & Cloud Group Recovery)
+    // =========================================================================
+
+    data class UserAccount(
+        val id: String,
+        val fullName: String,
+        val phone: String
+    )
+
+    suspend fun registerUser(fullName: String, password: String, phone: String): Result<UserAccount> {
+        val cleanName = fullName.trim()
+        val cleanPhone = phone.trim()
+
+        if (cleanName.isEmpty() || password.isEmpty() || cleanPhone.isEmpty()) {
+            return Result.failure(Exception("Please fill in all fields"))
+        }
+
+        // التأكد إن الاسم مش مستخدم قبل كده
+        val existingSnap = awaitTask(usersCollection.whereEqualTo("fullName", cleanName).get())
+            ?: return Result.failure(Exception("Network error, check your internet connection"))
+
+        if (!existingSnap.isEmpty) {
+            return Result.failure(Exception("This name is already registered, please Log In"))
+        }
+
+        val userId = java.util.UUID.randomUUID().toString()
+        val userMap = mapOf(
+            "id" to userId,
+            "fullName" to cleanName,
+            "password" to password,
+            "phone" to cleanPhone,
+            "groupCodes" to emptyList<String>()
+        )
+
+        awaitTask(usersCollection.document(userId).set(userMap))
+            ?: return Result.failure(Exception("Failed to create account"))
+
+        return Result.success(UserAccount(id = userId, fullName = cleanName, phone = cleanPhone))
+    }
+
+    suspend fun loginUser(fullName: String, password: String): Result<UserAccount> {
+        val cleanName = fullName.trim()
+        if (cleanName.isEmpty() || password.isEmpty()) {
+            return Result.failure(Exception("Please enter your name and password"))
+        }
+
+        val querySnap = awaitTask(
+            usersCollection
+                .whereEqualTo("fullName", cleanName)
+                .whereEqualTo("password", password)
+                .get()
+        ) ?: return Result.failure(Exception("Network error, check your internet connection"))
+
+        if (querySnap.isEmpty) {
+            return Result.failure(Exception("Invalid name or password"))
+        }
+
+        val doc = querySnap.documents.first()
+        val userId = doc.getString("id") ?: doc.id
+        val name = doc.getString("fullName") ?: cleanName
+        val phone = doc.getString("phone") ?: ""
+
+        // استرجاع كل جروبات اليوزر تلقائياً لو كان ماسح التطبيق ونزله تاني
+        val savedCodes = doc.get("groupCodes") as? List<*>
+        savedCodes?.forEach { code ->
+            if (code is String && code.isNotBlank()) {
+                joinGroupByCode(code)
+            }
+        }
+
+        return Result.success(UserAccount(id = userId, fullName = name, phone = phone))
+    }
+
+    fun linkGroupToUser(userId: String, groupCode: String) {
+        if (userId.isBlank() || groupCode.isBlank()) return
+        usersCollection.document(userId).update(
+            "groupCodes",
+            com.google.firebase.firestore.FieldValue.arrayUnion(groupCode)
+        )
+    }
+
     // لتخزين الـ Listeners النشطة وقفلها لما الشاشة تتقفل
     private var membersListener: ListenerRegistration? = null
     private var expensesListener: ListenerRegistration? = null
@@ -297,8 +382,7 @@ class ExpenseRepository(private val db: AppDatabase) {
         )
     }
 
-    private suspend fun <T> awaitTask(task: com.google.android.gms.tasks.Task<T>): T? =
-        suspendCancellableCoroutine { cont ->
+    private suspend fun <T> awaitTask(task: com.google.android.gms.tasks.Task<T>): T? = suspendCancellableCoroutine { cont ->
             task.addOnSuccessListener { result -> cont.resume(result) }
                 .addOnFailureListener { cont.resume(null) }
         }
